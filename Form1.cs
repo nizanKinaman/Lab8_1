@@ -28,11 +28,14 @@ namespace Lab7_2
         Point3 moving_point_line = new Point3(0, 0, 0);
         Point3 centr;
         string Path = "points.txt";
-        Point3 watcher = new Point3(0, 0, 1000);
+
+
+        Point3 watcher; 
 
         public Form1()
         {
             InitializeComponent();
+            
             //lines = Hex(size);
             centr = new Point3(pictureBox1.Width / 2, pictureBox1.Height / 2, 0);
             poly = Tetr(size);
@@ -857,21 +860,28 @@ namespace Lab7_2
             //линии к наблюдающему
             //g.DrawLine(myPen, Position2d(new Point3(pol.points[1].X, pol.points[1].Y, pol.points[1].Z)), Position2d(new Point3(-watcher.X, -watcher.Y, -watcher.Z)));
             //линии нормалей
-            g.DrawLine(myPen, Position2d(new Point3(pointcentr.X, pointcentr.Y, pointcentr.Z)), Position2d(new Point3(normal.X * 200, normal.Y * 200, normal.Z * 200)));
+            //g.DrawLine(myPen, Position2d(new Point3(pointcentr.X, pointcentr.Y, pointcentr.Z)), Position2d(new Point3(normal.X * 200, normal.Y * 200, normal.Z * 200)));
             pictureBox1.Image = bmp;
             return scal > 0;
 
         }
         public void DrawPolyhedrFaces()
         {
-            foreach(Edge edg in poly.edges)
+            watcher = new Point3(int.Parse(textBox10.Text), int.Parse(textBox11.Text), int.Parse(textBox12.Text));
+            foreach (Edge edg in poly.edges)
             {
-                Pen pen = new Pen(Color.Black, (float)(edg.points[0].Z + edg.points[1].Z+ edg.points[2].Z)/12);
+                
                 if (is_visible(edg)) 
                     g.DrawPolygon(myPen, Position2d(edg));
             }
             //g.DrawPolygon(myPen, Position2d(poly.edges[0]));
+            Pen pen = new Pen(Color.Black, 10f);
+            g.DrawLine(pen, pictureBox1.Width - Position2d(watcher).X, pictureBox1.Height - Position2d(watcher).Y, pictureBox1.Width - Position2d(watcher).X + 1, pictureBox1.Height - Position2d(watcher).Y + 1);
+            g.DrawLine(pen, pictureBox1.Width - Position2d(watcher).X, pictureBox1.Height - Position2d(watcher).Y + 1, pictureBox1.Width - Position2d(watcher).X + 1, pictureBox1.Height - Position2d(watcher).Y);
+
             pictureBox1.Image = bmp;
         }
+
+        
     }
 }
