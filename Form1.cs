@@ -14,16 +14,18 @@ namespace Lab7_2
 {
     public partial class Form1 : Form
     {
-        static Bitmap bmp = new Bitmap(800, 800);
+        static Bitmap bmp = new Bitmap(1600, 1600);
 
         Graphics g = Graphics.FromImage(bmp);
 
         Pen myPen = new Pen(Color.Black);
         List<Line> lines;
         Polyhedron poly = new Polyhedron();
+        Polyhedron poly2 = new Polyhedron();
+        bool second_poly = false;
 
         int size = 70;
-        Edge generatrix;
+        Edge generatrix = new Edge();
         Point3 moving_point = new Point3(0, 0, 0);
         Point3 moving_point_line = new Point3(0, 0, 0);
         Point3 centr;
@@ -37,9 +39,11 @@ namespace Lab7_2
             InitializeComponent();
             
             //lines = Hex(size);
-            centr = new Point3(pictureBox1.Width / 2, pictureBox1.Height / 2, 0);
+            centr = new Point3(800 / 2, 800 / 2, 0);
             poly = Tetr(size);
             var edges = poly.edges;
+            myPen.Width = 3f;
+
             foreach (var ed in edges)
                 g.DrawPolygon(myPen, Position2d(ed));
             pictureBox1.Image = bmp;
@@ -418,13 +422,23 @@ namespace Lab7_2
         // clear
         private void button7_Click(object sender, EventArgs e)
         {
-            generatrix = new Edge();
-            poly = new Polyhedron();
-            moving_point = new Point3(0, 0, 0);
-            moving_point_line = new Point3(0, 0, 0);
-            //lines = Hex(size);
-            g.Clear(Color.White);
-            pictureBox1.Image = bmp;
+            //generatrix = new Edge();
+            //poly = new Polyhedron();
+            //moving_point = new Point3(0, 0, 0);
+            //moving_point_line = new Point3(0, 0, 0);
+            ////lines = Hex(size);
+            //g.Clear(Color.White);
+            //pictureBox1.Image = bmp;
+            var l = new List<Point3>();
+            l.Add(new Point3(1, 3, 0));
+            l.Add(new Point3(5, 6, 4));
+            l.Add(new Point3(-1, -4, 0));
+            double x = 5;
+            double y = 2;
+            double z = find_z_three_points(l, x, y);
+            //MessageBox.Show(""+find_z_three_points(l, 5, 2));
+
+            MessageBox.Show("" + InTriangle(l[0], l[1], l[2], new Point3(1, 3, 0)));
         }
 
         // move
@@ -465,7 +479,11 @@ namespace Lab7_2
 
             }
             poly.edges = newEdges;
-            DrawPol();
+            //DrawPol();
+            if (!checkBox2.Checked)
+                DrawPolyhedrFaces();
+            else
+                Z_buffer();
             pictureBox1.Image = bmp;
         }
 
@@ -517,10 +535,12 @@ namespace Lab7_2
             poly.edges = newEdges;
             
             g.Clear(Color.White);
-            
-            //DrawPolyhedrFaces();
-            Z_buffer();
-            DrawPol();
+
+            if(!checkBox2.Checked)
+                DrawPolyhedrFaces();
+            else
+                Z_buffer();
+            //DrawPol();
             pictureBox1.Image = bmp;
         }
 
@@ -557,7 +577,11 @@ namespace Lab7_2
 
             }
             poly.edges = newEdges;
-            DrawPol();
+            if (!checkBox2.Checked)
+                DrawPolyhedrFaces();
+            else
+                Z_buffer();
+            pictureBox1.Image = bmp;
 
         }
 
@@ -863,7 +887,7 @@ namespace Lab7_2
             //линии к наблюдающему
             //g.DrawLine(myPen, Position2d(new Point3(pol.points[1].X, pol.points[1].Y, pol.points[1].Z)), Position2d(new Point3(-watcher.X, -watcher.Y, -watcher.Z)));
             //линии нормалей
-            //g.DrawLine(myPen, Position2d(new Point3(pointcentr.X, pointcentr.Y, pointcentr.Z)), Position2d(new Point3(normal.X * 200, normal.Y * 200, normal.Z * 200)));
+            g.DrawLine(myPen, Position2d(new Point3(pointcentr.X, pointcentr.Y, pointcentr.Z)), Position2d(new Point3(normal.X * 200, normal.Y * 200, normal.Z * 200)));
             pictureBox1.Image = bmp;
             return scal > 0;
 
@@ -925,10 +949,18 @@ namespace Lab7_2
             normal.X *= inv_length;
             normal.Y *= inv_length;
             normal.Z *= inv_length;
+            normal.X *= 50;
+            normal.Y *= 50;
+            normal.Z *= 50;
+            g.DrawLine(myPen, Position2d(new Point3(pointcentr.X, pointcentr.Y, pointcentr.Z)), Position2d(new Point3(normal.X , normal.Y , normal.Z )));
+
+            //g.DrawLine(myPen, new Point((int)pointcentr.X, (int)pointcentr.Y), new Point((int)normal.X * 200, (int)normal.Y * 200));
+            //g.DrawLine(myPen, Position2d(new Point3(pointcentr.X-30, pointcentr.Y-30, pointcentr.Z-30)), Position2d(new Point3(normal.X-30, normal.Y-30, normal.Z-30)));
 
             normal.X -= pointcentr.X;
             normal.Y -= pointcentr.Y;
             normal.Z -= pointcentr.Z;
+            //g.DrawLine(myPen, Position2d(new Point3(0, 0, 0)), Position2d(new Point3(normal.X, normal.Y, normal.Z)));
 
             return normal;
         }
@@ -943,79 +975,159 @@ namespace Lab7_2
             double y2 = p2.Y;
             double y3 = p3.Y;
 
-            double z1 = p1.Z;
-            double z2 = p2.Z;
-            double z3 = p3.Z;
-
             double x0 = trypoint.X;
             double y0 = trypoint.Y;
-            double z0 = trypoint.Z;
 
-            double t1 = (x1 - x0) * (y2 - y1) - (x2 - x1) * (y1 - y0);
-            double t2 = (x2 - x0) * (y3 - y2) - (x3 - x2) * (y2 - y0);
-            double t3 = (x3 - x0) * (y1 - y3) - (x1 - x3) * (y3 - y0);
+            double a = (x1 - x0) * (y2 - y1) - (x2 - x1) * (y1 - y0);
+            double b = (x2 - x0) * (y3 - y2) - (x3 - x2) * (y2 - y0);
+            double c = (x3 - x0) * (y1 - y3) - (x1 - x3) * (y3 - y0);
 
-            if ((Math.Sign(t1) == Math.Sign(t2)) && (Math.Sign(t2) == Math.Sign(t3)) && (Math.Sign(t3) == Math.Sign(t1)) || t1 == 0 || t2 == 0 || t3 == 0)
+            //if ((Math.Sign(t1) == Math.Sign(t2)) && (Math.Sign(t2) == Math.Sign(t3)) && (Math.Sign(t3) == Math.Sign(t1)) || t1 == 0 || t2 == 0 || t3 == 0)
+            if (((int)a >= 0 && (int)b >= 0 && (int)c >= 0) || ((int)a <= 0 && (int)b <= 0 && (int)c <= 0))
                 return true;
             return false;
         }
 
+        public double find_z_three_points(List<Point3> points, double x, double y)
+        {
+            double x1 = points[0].X;
+            double y1 = points[0].Y;
+            double z1 = points[0].Z;
+
+            double x2 = points[1].X;
+            double y2 = points[1].Y;
+            double z2 = points[1].Z;
+
+            double x3 = points[2].X;
+            double y3 = points[2].Y;
+            double z3 = points[2].Z;
+
+            double a11 = x - x1;
+            double a12 = x2 - x1;
+            double a13 = x3 - x1;
+            double a21 = y - y1;
+            double a22 = y2 - y1;
+            double a23 = y3 - y1;
+            //double a31 =z1 - z1;
+            double a32 = z2 - z1;
+            double a33 = z3 - z1;
+
+            double  z = (a11 * a22 * a33  + a13 * a21 * a32  - a11 * a23 * a32 - a12 * a21 * a33)/ (a13 * a22 - a12 * a23) + z1;
+            return z;
+        }
+
         public void Z_buffer()
         {
-            int[,] buffer = new int[pictureBox1.Width, pictureBox1.Height];
+            double[,] buffer = new double[pictureBox1.Width, pictureBox1.Height];
             Color[,] color = new Color[pictureBox1.Width , pictureBox1.Height];
             for (int i = 0; i < pictureBox1.Width; i++)
                 for (int j = 0; j < pictureBox1.Height; j++)
                 {
-                    buffer[i, j] = int.MinValue;
+                    buffer[i, j] = double.MinValue;
                     color[i, j] = Color.White;
                 }
+
+            var temp_edges = new List<Edge>();
             foreach (var edge in poly.edges)
             {
-                Point3 p1 = edge.points[0];
+                Edge temp_edge = new Edge();
+                List<Point3> oldList = edge.points;
+                List<Point3> newList = new List<Point3>(oldList.Count);
+                oldList.ForEach((item) =>
+                {
+                    newList.Add(new Point3(item.X, item.Y, item.Z));
+                });
+
+                temp_edge.points = newList;
+                temp_edges.Add(temp_edge);
+            }
+            foreach (var edge in poly2.edges)
+            {
+                Edge temp_edge = new Edge();
+                List<Point3> oldList = edge.points;
+                List<Point3> newList = new List<Point3>(oldList.Count);
+                oldList.ForEach((item) =>
+                {
+                    newList.Add(new Point3(item.X, item.Y, item.Z));
+                });
+
+                temp_edge.points = newList;
+                temp_edges.Add(temp_edge);
+            }
+
+            foreach (var edge in temp_edges)
+            {
+                g.Clear(Color.White);
+                g.DrawPolygon(myPen, Position2d(edge));
+                //pictureBox1.Image = bmp;
+
+                Edge temp_edge = new Edge();
+                List<Point3> oldList = edge.points;
+                List<Point3> newList = new List<Point3>(oldList.Count);
+                oldList.ForEach((item) =>
+                {
+                    newList.Add(new Point3(item.X, item.Y, item.Z));
+                });
+
+                temp_edge.points = newList;
+                Point3 p1 = temp_edge.points[0];
                 p1.X += centr.X;
                 p1.Y += centr.Y;
                 p1.Z += centr.Z;
-                Point3 p2 = edge.points[1];
+                Point3 p2 = temp_edge.points[1];
                 p2.X += centr.X;
                 p2.Y += centr.Y;
                 p2.Z += centr.Z;
-                Point3 p3 = edge.points[2];
+                Point3 p3 = temp_edge.points[2];
                 p3.X += centr.X;
                 p3.Y += centr.Y;
                 p3.Z += centr.Z;
 
+                Point3 p4 = temp_edge.points[2];
+                if (edge.points.Count == 4)
+                {
+                    p4 = temp_edge.points[3];
+                    p4.X += centr.X;
+                    p4.Y += centr.Y;
+                    p4.Z += centr.Z;
+                }
+
                 double x1 = p1.X, y1 = p1.Y, z1 = p1.Z;
                 double x2 = p2.X, y2 = p2.Y, z2 = p2.Z;
                 double x3 = p3.X, y3 = p3.Y, z3 = p3.Z;
-                Point3 normal = FindNormal(edge);
+                //Point3 normal = FindNormal(edge);
 
-                double a = normal.X;
-                double b = normal.Y;
-                double c = normal.Z;
+                //double a = normal.X;
+                //double b = normal.Y;
+                //double c = normal.Z;
                 
                 for (int x = 0; x < pictureBox1.Width; x++)
                     for (int y = 0; y < pictureBox1.Height; y++)
                     {
-                        double z = ((a * (x - x1) + b * (y - y1)) / (-c) + z1);
-                        if (InTriangle(p1, p2, p3, new Point3(x, y, z)))
-                            if (z > buffer[x, y])
+                        //double z = ((a * (x - x1) + b * (y - y1)) / (-c)) + z1;
+                        //if (edge.points.Count == 3)
+                        {
+                            if (InTriangle(p1, p2, p3, new Point3(x, y,0)))
                             {
-                                buffer[x, y] = (int)z;
-                                color[x, y] = bmp.GetPixel(x, y);
+                                double z = find_z_three_points(temp_edge.points, x, y);
+                                if (z > buffer[x, y])
+                                {
+                                    buffer[x, y] = z;
+                                    color[x, y] = bmp.GetPixel(x, y);
+                                }
                             }
+                        }
                         if (edge.points.Count == 4)
                         {
-                            Point3 p4 = edge.points[3];
-                            p4.X += centr.X;
-                            p4.Y += centr.Y;
-                            p4.Z += centr.Z;
-                            if (InTriangle(p1, p3, p4, new Point3(x, y, z)))
+                            if (InTriangle(p1, p3, p4, new Point3(x, y,0)))
+                            {
+                                double z = find_z_three_points(temp_edge.points, x, y);
                                 if (z > buffer[x, y])
                                 {
                                     buffer[x, y] = (int)z;
                                     color[x, y] = bmp.GetPixel(x, y);
-                                }
+                                } 
+                            }
                         }
                       
                     }
@@ -1026,5 +1138,16 @@ namespace Lab7_2
                     bmp.SetPixel(x, y, color[x, y]);
             //pictureBox1.Refresh();
         }
+
+        private void button6_Click(object sender, EventArgs e)
+        {
+            radioButton6.Checked = false;
+            radioButton8.Checked = false;
+            radioButton10.Checked = false;
+            second_poly = true;
+            poly2 = poly;
+            poly = new Polyhedron();
+        }
     }
+
 }
