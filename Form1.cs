@@ -515,9 +515,12 @@ namespace Lab7_2
                 newEdges.Add(newPoints);
             }
             poly.edges = newEdges;
-            //DrawPol();
+            
             g.Clear(Color.White);
-            DrawPolyhedrFaces();
+            
+            //DrawPolyhedrFaces();
+            Z_buffer();
+            DrawPol();
             pictureBox1.Image = bmp;
         }
 
@@ -882,6 +885,146 @@ namespace Lab7_2
             pictureBox1.Image = bmp;
         }
 
-        
+
+        public Point3 FindNormal(Edge pol)
+        {
+            Point3 v1 = new Point3(pol.points[0].X - pol.points[1].X, pol.points[0].Y - pol.points[1].Y, pol.points[0].Z - pol.points[1].Z);
+            Point3 v2 = new Point3(pol.points[2].X - pol.points[1].X, pol.points[2].Y - pol.points[1].Y, pol.points[2].Z - pol.points[1].Z);
+            Point3 normal = new Point3(v1.Z * v2.Y - v1.Y * v2.Z, v1.X * v2.Z - v1.Z * v2.X, v1.Y * v2.X - v1.X * v2.Y, 2);
+
+            Point3 pointcentr = new Point3(0, 0, 0);
+            
+            double length_v1 = Math.Sqrt(Math.Pow(pol.points[0].X - pol.points[1].X, 2) + Math.Pow(pol.points[0].Y - pol.points[1].Y, 2) + Math.Pow(pol.points[0].Z - pol.points[1].Z, 2));
+            double length_v2 = Math.Sqrt(Math.Pow(pol.points[2].X - pol.points[1].X, 2) + Math.Pow(pol.points[2].Y - pol.points[1].Y, 2) + Math.Pow(pol.points[2].Z - pol.points[1].Z, 2));
+            double length_v3 = Math.Sqrt(Math.Pow(pol.points[2].X - pol.points[0].X, 2) + Math.Pow(pol.points[2].Y - pol.points[0].Y, 2) + Math.Pow(pol.points[2].Z - pol.points[0].Z, 2));
+
+            length_v1 = (int)(length_v1 * 100);
+            length_v2 = (int)(length_v2 * 100);
+            length_v3 = (int)(length_v3 * 100);
+
+            if (!(length_v1 == length_v2 && length_v2 == length_v3 && length_v1 == length_v3))
+            {
+                pointcentr.X += (pol.points[2].X + pol.points[0].X) / 2;
+                pointcentr.Y += (pol.points[2].Y + pol.points[0].Y) / 2;
+                pointcentr.Z += (pol.points[2].Z + pol.points[0].Z) / 2;
+            }
+            else
+            {
+                for (int i = 0; i < pol.points.Count(); i++)
+                {
+                    pointcentr.X += pol.points[i].X;
+                    pointcentr.Y += pol.points[i].Y;
+                    pointcentr.Z += pol.points[i].Z;
+                }
+                pointcentr.X /= pol.points.Count();
+                pointcentr.Y /= pol.points.Count();
+                pointcentr.Z /= pol.points.Count();
+            }
+
+            double inv_length = 1 / Math.Sqrt(normal.X * normal.X + normal.Y * normal.Y + normal.Z * normal.Z);
+            normal.X *= inv_length;
+            normal.Y *= inv_length;
+            normal.Z *= inv_length;
+
+            normal.X -= pointcentr.X;
+            normal.Y -= pointcentr.Y;
+            normal.Z -= pointcentr.Z;
+
+            return normal;
+        }
+
+        public bool InTriangle(Point3 p1, Point3 p2, Point3 p3, Point3 trypoint)
+        {
+            double x1 = p1.X;
+            double x2 = p2.X;
+            double x3 = p3.X;
+
+            double y1 = p1.Y;
+            double y2 = p2.Y;
+            double y3 = p3.Y;
+
+            double z1 = p1.Z;
+            double z2 = p2.Z;
+            double z3 = p3.Z;
+
+            double x0 = trypoint.X;
+            double y0 = trypoint.Y;
+            double z0 = trypoint.Z;
+
+            double t1 = (x1 - x0) * (y2 - y1) - (x2 - x1) * (y1 - y0);
+            double t2 = (x2 - x0) * (y3 - y2) - (x3 - x2) * (y2 - y0);
+            double t3 = (x3 - x0) * (y1 - y3) - (x1 - x3) * (y3 - y0);
+
+            if ((Math.Sign(t1) == Math.Sign(t2)) && (Math.Sign(t2) == Math.Sign(t3)) && (Math.Sign(t3) == Math.Sign(t1)) || t1 == 0 || t2 == 0 || t3 == 0)
+                return true;
+            return false;
+        }
+
+        public void Z_buffer()
+        {
+            int[,] buffer = new int[pictureBox1.Width, pictureBox1.Height];
+            Color[,] color = new Color[pictureBox1.Width , pictureBox1.Height];
+            for (int i = 0; i < pictureBox1.Width; i++)
+                for (int j = 0; j < pictureBox1.Height; j++)
+                {
+                    buffer[i, j] = int.MinValue;
+                    color[i, j] = Color.White;
+                }
+            foreach (var edge in poly.edges)
+            {
+                Point3 p1 = edge.points[0];
+                p1.X += centr.X;
+                p1.Y += centr.Y;
+                p1.Z += centr.Z;
+                Point3 p2 = edge.points[1];
+                p2.X += centr.X;
+                p2.Y += centr.Y;
+                p2.Z += centr.Z;
+                Point3 p3 = edge.points[2];
+                p3.X += centr.X;
+                p3.Y += centr.Y;
+                p3.Z += centr.Z;
+
+                double x1 = p1.X, y1 = p1.Y, z1 = p1.Z;
+                double x2 = p2.X, y2 = p2.Y, z2 = p2.Z;
+                double x3 = p3.X, y3 = p3.Y, z3 = p3.Z;
+                Point3 normal = FindNormal(edge);
+
+                double a = normal.X;
+                double b = normal.Y;
+                double c = normal.Z;
+                
+                for (int x = 0; x < pictureBox1.Width; x++)
+                    for (int y = 0; y < pictureBox1.Height; y++)
+                    {
+                        double z = ((a * (x - x1) + b * (y - y1)) / (-c) + z1);
+                        if (InTriangle(p1, p2, p3, new Point3(x, y, z)))
+                            if (z > buffer[x, y])
+                            {
+                                buffer[x, y] = (int)z;
+                                color[x, y] = bmp.GetPixel(x, y);
+                            }
+                        if (edge.points.Count == 4)
+                        {
+                            Point3 p4 = edge.points[3];
+                            p4.X += centr.X;
+                            p4.Y += centr.Y;
+                            p4.Z += centr.Z;
+                            if (InTriangle(p1, p3, p4, new Point3(x, y, z)))
+                                if (z > buffer[x, y])
+                                {
+                                    buffer[x, y] = (int)z;
+                                    color[x, y] = bmp.GetPixel(x, y);
+                                }
+                        }
+                      
+                    }
+            }
+            g.Clear(Color.White);
+            for (int x = 0; x < pictureBox1.Width; x++)
+                for (int y = 0; y < pictureBox1.Height; y++)
+                    bmp.SetPixel(x, y, color[x, y]);
+            //pictureBox1.Refresh();
+        }
     }
 }
